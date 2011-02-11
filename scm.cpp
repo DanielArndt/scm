@@ -2247,7 +2247,7 @@ void scmExplicit::test(long level)
   oss << " bestteam";
   cout << oss.str() << " " << **maxiter << endl;
 
-  _testEnv->test(*maxiter, oss.str(), false);
+  _testEnv->test(*maxiter, oss.str(), true);
 
   cout << (*maxiter)->printBids(oss.str());
 }

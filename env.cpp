@@ -2649,19 +2649,22 @@ double datasetEnv::test(team *tm,
       margins[labelIndex] += fabs(bid1.back() - bid2.back());
       
       cm[labelIndex * numLabels() + action]++;
-      
-      if(labelIndex == action)
-	{
-	  /* Correct. */
-	  hit++;
-	  cout << " 1";
-	}
-      else
-	{
-	  /* Inorrect. */
-	  mis++;
-	  cout << " 0";
-	}
+
+      if (showState){
+        cout << " " << labelIndex << "->" << action;
+        if(labelIndex == action)
+          {
+          /* Correct. */
+          hit++;
+          cout << " 1";
+          }
+        else
+          {
+          /* Incorrect. */
+          mis++;
+          cout << " 0";
+          }
+      }
     }
   cout << endl;
 
