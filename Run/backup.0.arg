@@ -1,0 +1,47 @@
+envType backupEnv
+
+trainSetName ann-train.data
+testSetName ann-test.data
+trainSetSize 3772
+testSetSize 3428
+setDim 21
+
+numTestPoints 1000
+numValidPoints 100
+useBinaryFitness 1
+
+rubikInitTwists 20
+rubikMutateTwists 1
+
+mux 5
+muy 10
+muthetas 18
+muthetac 18
+
+seed 0
+
+paretoEpsilonPoint 0.001
+paretoEpsilonTeam 0.001
+pointPow 3
+teamPow 3
+maxSteps 200
+
+Psize 32
+Msize 32
+pmd 0.3
+pma 0.4
+pmm 0.1
+pmn 0.1
+omega 24
+t 1000
+numLevels 2
+Pgap 4
+Mgap 16
+
+maxProgSize 48
+pBidMutate 1
+pBidSwap 1
+pBidDelete 0.5
+pBidAdd 0.5
+
+statMod 5

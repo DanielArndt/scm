@@ -1,0 +1,1 @@
+./scm backup.0.arg 1> backup.0.std 2> backup.0.err

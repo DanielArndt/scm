@@ -1,0 +1,47 @@
+envType rubikEnv
+
+trainSetName ann-train.data
+testSetName ann-test.data
+trainSetSize 3772
+testSetSize 3428
+setDim 21
+
+numTestPoints 1000
+numValidPoints 100
+useBinaryFitness 0
+
+rubikInitTwists 10
+rubikMutateTwists 1
+
+mux 5
+muy 10
+muthetas 18
+muthetac 18
+
+seed 0
+
+paretoEpsilonPoint 0.001
+paretoEpsilonTeam 0.001
+pointPow 3
+teamPow 3
+maxSteps 20
+
+Psize 4
+Msize 4
+pmd 0.3
+pma 0.4
+pmm 0.1
+pmn 0.1
+omega 6
+t 10
+numLevels 1
+Pgap 2
+Mgap 2
+
+maxProgSize 48
+pBidMutate 1
+pBidSwap 1
+pBidDelete 0.5
+pBidAdd 0.5
+
+statMod 5

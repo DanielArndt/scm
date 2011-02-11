@@ -1,0 +1,25 @@
+seed 0
+
+envType datasetEnv
+Psize 6
+Msize 24
+pd 0.1
+pa 0.1
+mua 0.1
+omega 4
+t 20000
+Pgap 3
+Mgap 12
+
+trainSetName evenParity3.train
+testSetName evenParity3.train
+setDim 3
+trainSetSize 8
+testSetSize 8
+maxProgSize 48
+pBidMutate 0.5
+pBidSwap 0.5
+pBidDelete 0.5
+pBidAdd 0.5
+
+statMod 1000

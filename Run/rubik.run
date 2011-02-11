@@ -1,0 +1,1 @@
+./scm rubik.0.arg 1> rubik.0.std 2> rubik.0.err

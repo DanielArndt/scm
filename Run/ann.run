@@ -1,0 +1,1 @@
+./scm ann.0.arg 1> ann.0.std 2> ann.0.err
