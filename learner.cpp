@@ -17,9 +17,9 @@ const instruction learner::_dstMask(0x70);
 const instruction learner::_srcMask(0x7FFF80); 
 
 /* Rx <- op Rx Ry */
-const instruction learner::_mode0(0x0); 
+const instruction learner::_mode0(0x0);
 /* Rx <- op Rx Iy */
-const instruction learner::_mode1(0x1); 
+const instruction learner::_mode1(0x1);
 
 /* IMPORTANT!!!
    
@@ -62,6 +62,18 @@ learner::learner(long gtime,
       
       _bid.push_back(in);
     }
+  
+  markIntrons(_bid);
+}
+
+learner::learner(long gtime, 
+		 long action,
+		 int maxProgSize,
+		 long dim,
+		 vector < instruction* >& program)
+  : _id(_count++), _gtime(gtime), _action(action), _dim(dim), _nrefs(0), _bid(program)
+{
+  /* Copy in program */
   
   markIntrons(_bid);
 }

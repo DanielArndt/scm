@@ -102,6 +102,9 @@ public:
   /* Create learner from another learner. */
   learner(long, learner &);
   
+  /* Create learner with specified bidding program. */
+  learner(long, long, int, long, vector < instruction* >&);
+  
   ~learner();
   
   double bid(double *, double *);

@@ -12,24 +12,31 @@ int _dim;
 
 int createLearners()
 {
+  /* Must parse:
+  0 lev 1 bestteam 0 lid 28 act 0 size 6 esize 2 showexec 0 eff 0 00100100000101101101011 6 19 RI log
+  */
+  
   learner *l;
   long action = 1;
-  l = new learner(-1, action, _maxProgSize, _dim);
+  vector < instruction* > program = new vector < instruction* >();
+  instruction in = new instruction();
+  
+  l = new learner(-1, action, _maxProgSize, _dim, program);
   
   /* The following are variables we need to set */
 
   /* Bid program. This is what we need to read from the output file. */
-//  vector < instruction * > _bid;
+  //   vector < instruction * > _bid;
   
   /* Features indexed by non-introns in this learner, determined in
-markIntrons(). */
-//  set < long > _features;
+     markIntrons(). */
+  //   set < long > _features;
 
   /* Number of references by teams. */
-//  int _nrefs;
+  //   int _nrefs;
   
   /* Bid profile. */
-//  vector < double > _profile;
+  //   vector < double > _profile;
 
   return 0;
 }
