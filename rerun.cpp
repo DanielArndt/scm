@@ -10,33 +10,39 @@ using namespace std;
 int _maxProgSize;
 int _dim;
 
+vector < string > fileTail(string fileName, int n)
+{
+  ifstream infile(fileName.c_str(), ios::in);
+  vector< string > lines;
+  infile.seekg(ios_base::end-10);
+  string tmp;
+  infile >> tmp;
+  lines.insert(lines.begin(), tmp);
+  return lines;
+}
+
 int createLearners()
 {
-  /* Must parse:
-  0 lev 1 bestteam 0 lid 28 act 0 size 6 esize 2 showexec 0 eff 0 00100100000101101101011 6 19 RI log
-  */
-  
   learner *l;
   long action = 1;
-  vector < instruction* > program = new vector < instruction* >();
-  instruction in = new instruction();
+  l = new learner(-1, action, _maxProgSize, _dim);
   
-  l = new learner(-1, action, _maxProgSize, _dim, program);
+  instruction *i = new instruction();
   
   /* The following are variables we need to set */
 
   /* Bid program. This is what we need to read from the output file. */
-  //   vector < instruction * > _bid;
+  //  vector < instruction * > _bid;
   
   /* Features indexed by non-introns in this learner, determined in
      markIntrons(). */
-  //   set < long > _features;
+  //  set < long > _features;
 
   /* Number of references by teams. */
-  //   int _nrefs;
+  //  int _nrefs;
   
   /* Bid profile. */
-  //   vector < double > _profile;
+  //  vector < double > _profile;
 
   return 0;
 }
@@ -51,7 +57,7 @@ int main(int argc,
   /* First, lets make sure that we're in a dataSetEnv.. */
   if((ariter = args.find("envType")) == args.end())
     die(__FILE__, __FUNCTION__, __LINE__, "cannot find arg envType");
- 
+
   if (ariter->second.compare("datasetEnv"))
     die(__FILE__, __FUNCTION__, __LINE__, "this program requires a datasetEnv");
   
@@ -67,7 +73,9 @@ int main(int argc,
   _dim = stringToInt(ariter->second);
   cout << "_dim = " << _dim << endl;
   
-  createLearners();
+  //createLearners();
+  vector < string > lines = fileTail("out.txt", 5);
+  cout << lines[0];
  
   return 0;
 }
