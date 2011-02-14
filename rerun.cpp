@@ -23,7 +23,10 @@ vector < string* >* endOfStreamToVector(ifstream &infile, int offset)
   while (!infile.eof()){
     string *tmp = new string();
     getline(infile, *tmp);
-    lines->insert(lines->end(), tmp);
+    if (tmp->length() > 0)
+      lines->insert(lines->end(), tmp);
+    else
+      delete tmp;
   }
   return lines;
 }
