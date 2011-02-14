@@ -5,49 +5,10 @@
 #include "team.hpp"
 #include "point.hpp"
 
-#define READ_BLOCK_SIZE 4096
-#define MAX_BLOCK_READS 50
-
 using namespace std;
 
 int _maxProgSize;
 int _dim;
-
-/* Find the last occurance of a string in a text file by iteratively searching
- * further back in the file. Currently it is hardcoded to only search back up
- * to 200KB. */
-string* findLastOccurance(string fileName, string findString)
-{
-  ifstream infile(fileName.c_str(), ios::in);
-  int reads = 0;
-  int readback = 0;
-  
-  char tmp[READ_BLOCK_SIZE+1];
-  tmp[READ_BLOCK_SIZE] = '\0';
-  string* fileEnd = new string();
-  string* tmpPtr;
-  cout << "In." << endl;
-  size_t found = string::npos;
-  while (found == string::npos)
-  {
-    ++reads;
-    cout << "Searching back "<< reads*READ_BLOCK_SIZE << " bytes." << endl;
-    readback = reads * READ_BLOCK_SIZE;
-    infile.seekg(-readback, ios_base::end);
-    infile.read(tmp, READ_BLOCK_SIZE);
-    tmpPtr = fileEnd;
-    *fileEnd = string(tmp).append(*tmpPtr);
-    delete tmpPtr;
-    found = fileEnd->rfind(findString);
-    if (reads > MAX_BLOCK_READS)
-      die(__FILE__, __FUNCTION__, __LINE__, "cannot find string");
-  }
-  tmpPtr = fileEnd;
-  fileEnd = new string(fileEnd->substr(found));
-  delete tmpPtr;
-  //cout << "File end: " << fileend << endl;
-  return fileEnd;
-}
 
 int createLearners()
 {
@@ -102,9 +63,11 @@ int main(int argc,
   cout << "_dim = " << _dim << endl;
   
   //createLearners();
-  string* fileend = findLastOccurance(argv[2], "explicitEnv::test");
-  cout << *fileend;
-  cout << endl;
+  string* fileEnd = findLastOccurance(argv[2], "explicitEnv::test");
+  cout << *fileEnd << endl;
+  
+  
+  
  
   return 0;
 }

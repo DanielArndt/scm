@@ -185,3 +185,33 @@ bool getusage(double &sys,
   return true;
 }
 
+string* findLastOccurrence(string fileName, string findString)
+{
+  ifstream infile(fileName.c_str(), ios::in);
+  int reads = 0;
+  int readback = 0;
+  
+  char tmp[READ_BLOCK_SIZE+1];
+  tmp[READ_BLOCK_SIZE] = '\0';
+  string* fileEnd = new string();
+  string* tmpPtr;
+  cout << "In." << endl;
+  size_t found = string::npos;
+  while (found == string::npos)
+  {
+    ++reads;
+    cout << "Searching back "<< reads*READ_BLOCK_SIZE << " bytes." << endl;
+    readback = reads * READ_BLOCK_SIZE;
+    infile.seekg(-readback, ios_base::end);
+    infile.read(tmp, READ_BLOCK_SIZE);
+    *fileEnd = string(tmp).append(*fileEnd);
+    found = fileEnd->rfind(findString);
+    if (reads > MAX_BLOCK_READS)
+      die(__FILE__, __FUNCTION__, __LINE__, "cannot find string");
+  }
+  tmpPtr = fileEnd;
+  fileEnd = new string(fileEnd->substr(found));
+  delete tmpPtr;
+  //cout << "File end: " << fileend << endl;
+  return fileEnd;
+}

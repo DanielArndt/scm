@@ -18,6 +18,9 @@ using namespace std;
 #define NEARZERO 10e-12
 #define EPSILON 1e-5
 
+#define READ_BLOCK_SIZE 4096
+#define MAX_BLOCK_READS 50
+
 /* Returns a normally distributed deviate with zero mean and unit variance
    based on Section 7.2 of 'Numerical Recipes in C'.*/
 float gasdev();
@@ -53,6 +56,11 @@ double stringToDouble(string);
 int readMap(string, map < string, string > &);
 
 bool getusage(double &, double &);
+
+/* Find the last occurance of a string in a text file by iteratively searching
+ * further back in the file. Currently it is hardcoded to only search back up
+ * to 200KB. */
+string* findLastOccurrence(string fileName, string findString);
 
 template < class vtype > string vecToStr(vector < vtype > &v)
 { ostringstream oss; for(int i = 0; i < v.size(); i++) { oss << " " << v[i]; } return oss.str(); }
