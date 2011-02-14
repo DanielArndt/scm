@@ -24,7 +24,8 @@ string* findLastOccurance(string fileName, string findString)
   
   char tmp[READ_BLOCK_SIZE+1];
   tmp[READ_BLOCK_SIZE] = '\0';
-  string* fileend = new string();
+  string* fileEnd = new string();
+  string* tmpPtr;
   cout << "In." << endl;
   size_t found = string::npos;
   while (found == string::npos)
@@ -34,15 +35,18 @@ string* findLastOccurance(string fileName, string findString)
     readback = reads * READ_BLOCK_SIZE;
     infile.seekg(-readback, ios_base::end);
     infile.read(tmp, READ_BLOCK_SIZE);
-    *fileend = string(tmp).append(*fileend);
-    found = fileend->rfind(findString);
-    if (reads > MAX_BLOCK_READS) {
+    tmpPtr = fileEnd;
+    *fileEnd = string(tmp).append(*tmpPtr);
+    delete tmpPtr;
+    found = fileEnd->rfind(findString);
+    if (reads > MAX_BLOCK_READS)
       die(__FILE__, __FUNCTION__, __LINE__, "cannot find string");
-    }
   }
-  fileend->substr(found);
+  tmpPtr = fileEnd;
+  fileEnd = new string(fileEnd->substr(found));
+  delete tmpPtr;
   //cout << "File end: " << fileend << endl;
-  return fileend;
+  return fileEnd;
 }
 
 int createLearners()
@@ -99,7 +103,7 @@ int main(int argc,
   
   //createLearners();
   string* fileend = findLastOccurance(argv[2], "explicitEnv::test");
-  cout << *fileend << endl;
+  cout << *fileend;
   cout << endl;
  
   return 0;
