@@ -60,7 +60,7 @@ bool getusage(double &, double &);
 /* Find the last occurance of a string in a text file by iteratively searching
  * further back in the file. Currently it is hardcoded to only search back up
  * to 200KB. */
-string* findLastOccurrence(string fileName, string findString);
+int findLastOccurrence(string fileName, string findString);
 
 template < class vtype > string vecToStr(vector < vtype > &v)
 { ostringstream oss; for(int i = 0; i < v.size(); i++) { oss << " " << v[i]; } return oss.str(); }

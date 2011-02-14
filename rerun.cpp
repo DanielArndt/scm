@@ -10,6 +10,11 @@ using namespace std;
 int _maxProgSize;
 int _dim;
 
+vector < string* >* stringToVector()
+{
+  
+}
+
 int createLearners()
 {
   learner *l;
@@ -63,12 +68,9 @@ int main(int argc,
   cout << "_dim = " << _dim << endl;
   
   //createLearners();
-  string* fileEnd = findLastOccurance(argv[2], "explicitEnv::test");
-  cout << *fileEnd << endl;
+  int foundAt = findLastOccurrence(argv[2], "explicitEnv::test");
+  cout << "Found at: " << foundAt << endl;
   
-  
-  
- 
   return 0;
 }
 
