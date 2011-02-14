@@ -10,9 +10,22 @@ using namespace std;
 int _maxProgSize;
 int _dim;
 
-vector < string* >* stringToVector()
+vector < string* >* endOfStreamToVector(ifstream &infile, int offset)
 {
+  vector < string* >* lines = new vector < string* >();
+  infile.seekg(-offset, ios_base::end);
   
+  /* Throw away first line */
+  //string *tmp = new string();
+  //getline(infile, *tmp);
+  //delete tmp;
+  
+  while (!infile.eof()){
+    string *tmp = new string();
+    getline(infile, *tmp);
+    lines->insert(lines->end(), tmp);
+  }
+  return lines;
 }
 
 int createLearners()
@@ -68,8 +81,12 @@ int main(int argc,
   cout << "_dim = " << _dim << endl;
   
   //createLearners();
+  ifstream infile(argv[2], ios::in);
   int foundAt = findLastOccurrence(argv[2], "explicitEnv::test");
   cout << "Found at: " << foundAt << endl;
+  
+  vector < string* >* lines = endOfStreamToVector(infile, foundAt);
+  cout << "Lines read: " << lines->size() << endl;
   
   return 0;
 }
