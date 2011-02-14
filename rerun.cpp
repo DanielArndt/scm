@@ -4,6 +4,7 @@
 #include "learner.hpp"
 #include "team.hpp"
 #include "point.hpp"
+#include <iterator>
 
 using namespace std;
 
@@ -29,17 +30,22 @@ vector < string > endOfStreamToVector(ifstream &infile, int offset)
   return lines;
 }
 
-int createLearners(vector < string* > *fileEnd)
+int createLearners(vector < string > fileEnd)
 {
   learner *l;
   string line;
   long action = 1;
   l = new learner(-1, action, _maxProgSize, _dim);
   
-  vector < string* >::iterator fiter, fiterend;
-  for (fiter = fileEnd->begin(), fiterend = fileEnd->end(); fiter != fiterend; fiter++)
+  vector < string >::iterator fiter, fiterend;
+  for (fiter = fileEnd.begin(), fiterend = fileEnd.end(); fiter != fiterend; fiter++)
   {
-    //line = *fiter;
+    istringstream iss(*fiter);
+    vector < string > tok;
+    /* tokenize the line */
+    copy(istream_iterator < string >(iss),
+	 istream_iterator < string >(),
+	 back_inserter < vector < string > >(tok));
     //line.
     //instruction *i = new instruction();
   }
