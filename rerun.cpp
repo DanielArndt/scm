@@ -63,7 +63,7 @@ int createLearners(vector < string > fileEnd)
 	    ostringstream oss;
 	    oss << " lid " << l->id() << " act " << l->action();
 	    oss << " size " << l->size() << " esize " << l->esize() ;
-	    cout << l->printBid("prefix")l;
+	    cout << l->printBid("prefix");
 	}
 	prevLearnNum = learnerNum;
       }
