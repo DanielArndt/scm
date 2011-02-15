@@ -34,36 +34,49 @@ int createLearners(vector < string > fileEnd)
 {
   learner *l;
   string line;
-  long action = 1;
-  l = new learner(-1, action, _maxProgSize, _dim);
+  long action = -1;
+  long prevAction = -1;
+  int learnerNum = -1;
+  int prevLearnNum = -1;
+  vector < instruction* > program;
+  vector < string > tok;
   
   vector < string >::iterator fiter, fiterend;
   for (fiter = fileEnd.begin(), fiterend = fileEnd.end(); fiter != fiterend; fiter++)
   {
     istringstream iss(*fiter);
-    vector < string > tok;
-    /* tokenize the line */
-    copy(istream_iterator < string >(iss),
-	 istream_iterator < string >(),
+    
+    /* tokenize the line into a vector*/
+    copy(istream_iterator < string >(iss), istream_iterator < string >(), 
 	 back_inserter < vector < string > >(tok));
-    //line.
-    //instruction *i = new instruction();
+    /* Skip team data */
+    if (tok[0].compare("explicitEnv::test"))
+    {
+      learnerNum = stringToInt(tok[4]);
+      /* Check if we are on a new learner */
+      if ((learnerNum != prevLearnNum))
+      {
+	if (prevLearnNum != -1){
+	    /* Create a learner from all the previous instructions */
+	    action = stringToLong(tok[8]);
+	    l = new learner(1, action, _maxProgSize, _dim, program);
+	    ostringstream oss;
+	    oss << " lid " << l->id() << " act " << l->action();
+	    oss << " size " << l->size() << " esize " << l->esize() ;
+	    cout << l->printBid("prefix")l;
+	}
+	prevLearnNum = learnerNum;
+      }
+      program.push_back(new instruction(tok[17]));
+      
+    }
+    tok.clear();
   }
   
   /* The following are variables we need to set */
 
   /* Bid program. This is what we need to read from the output file. */
   //  vector < instruction * > _bid;
-  
-  /* Features indexed by non-introns in this learner, determined in
-     markIntrons(). */
-  //  set < long > _features;
-
-  /* Number of references by teams. */
-  //  int _nrefs;
-  
-  /* Bid profile. */
-  //  vector < double > _profile;
 
   return 0;
 }
@@ -100,9 +113,11 @@ int main(int argc,
   cout << "Found at: " << foundAt << endl;
   
   vector < string > lines = endOfStreamToVector(infile, foundAt);
-  cout << "Lines read: " << lines.size() << endl;
-  cout << "First line: " << lines[9] << endl;
   
+  
+  createLearners(lines);
+  cout << "Lines read: " << lines.size() << endl;
+  cout << "First line: " << lines[1] << endl;
   
   return 0;
 }

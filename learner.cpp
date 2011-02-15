@@ -71,10 +71,14 @@ learner::learner(long gtime,
 		 int maxProgSize,
 		 long dim,
 		 vector < instruction* >& program)
-  : _id(_count++), _gtime(gtime), _action(action), _dim(dim), _nrefs(0), _bid(program)
+  : _id(_count++), _gtime(gtime), _action(action), _dim(dim), _nrefs(0)
 {
+  int size = program.size();
   /* Copy in program */
-  
+  for(int i = 0; i < size; i++)
+    {
+      _bid.push_back(program[i]);
+    }
   markIntrons(_bid);
 }
 
