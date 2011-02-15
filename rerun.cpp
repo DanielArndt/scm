@@ -38,35 +38,46 @@ int makeTeam(vector < string > fileEnd)
   
   vector < string >::iterator fiter, fiterend;
   for (fiter = fileEnd.begin(), fiterend = fileEnd.end(); fiter != fiterend; fiter++)
-  {
-    istringstream iss(*fiter);
-    
-    /* tokenize the line into a vector*/
-    copy(istream_iterator < string >(iss), istream_iterator < string >(), 
-	 back_inserter < vector < string > >(tok));
-    /* Skip team data */
-    if (tok[0].compare("explicitEnv::test"))
     {
-      learnerNum = stringToInt(tok[4]);
-      /* Check if we are on a new learner */
-      if ((learnerNum != prevLearnNum))
-      {
-	if (prevLearnNum != -1){
-	    /* Create a learner from all the previous instructions */
-	    action = stringToLong(tok[8]);
-	    l = new learner(1, action, _maxProgSize, _dim, program);
-	    ostringstream oss;
-	    oss << " lid " << l->id() << " act " << l->action();
-	    oss << " size " << l->size() << " esize " << l->esize();
-	    cout << l->printBid("");
+      istringstream iss(*fiter);
+
+      /* tokenize the line into a vector*/
+      tok.clear();
+      copy(istream_iterator < string >(iss), istream_iterator < string >(),
+	  back_inserter < vector < string > >(tok));
+      /* Skip team data */
+      if (tok[0].compare("explicitEnv::test"))
+	{
+	  learnerNum = stringToInt(tok[4]);
+	  /* Check if we are on a new learner */
+	  if ((learnerNum != prevLearnNum))
+	    {
+	      /* TODO: We are breaking the 3 indent rule here.
+	       * We should reconstruct. */
+	      if (prevLearnNum != -1)
+		{
+		    /* Create a learner from all the previous instructions */
+		    action = stringToLong(tok[8]);
+		    l = new learner(1, action, _maxProgSize, _dim, program);
+		    program.clear();
+		    ostringstream oss;
+		    oss << " lid " << l->id() << " act " << l->action();
+		    oss << " size " << l->size() << " esize " << l->esize();
+		    cout << l->printBid("");
+		}
+	      prevLearnNum = learnerNum;
+	    }
+	  program.push_back(new instruction(tok[17]));
+
 	}
-	prevLearnNum = learnerNum;
-      }
-      program.push_back(new instruction(tok[17]));
-      
     }
-    tok.clear();
-  }
+  /* Create a final learner from all the previous instructions */
+  action = stringToLong(tok[8]);
+  l = new learner(1, action, _maxProgSize, _dim, program);
+  ostringstream oss;
+  oss << " lid " << l->id() << " act " << l->action();
+  oss << " size " << l->size() << " esize " << l->esize();
+  cout << l->printBid("");
   
   /* The following are variables we need to set */
 
