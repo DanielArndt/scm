@@ -25,8 +25,11 @@ vector < string > endOfStreamToVector(ifstream &infile, int offset)
   return lines;
 }
 
-int makeTeam(vector < string > fileEnd)
+team* makeTeam(vector < string > fileEnd)
 {
+  vector < team* >* mlev = new vector < team *>();
+  mlev->push_back(0);
+  team *t = new team(1, mlev, 1);
   learner *l;
   string line;
   long action = -1;
@@ -59,32 +62,20 @@ int makeTeam(vector < string > fileEnd)
 		    /* Create a learner from all the previous instructions */
 		    action = stringToLong(tok[8]);
 		    l = new learner(1, action, _maxProgSize, _dim, program);
+		    t->addLearner(l);
 		    program.clear();
-		    ostringstream oss;
-		    oss << " lid " << l->id() << " act " << l->action();
-		    oss << " size " << l->size() << " esize " << l->esize();
-		    cout << l->printBid("");
 		}
 	      prevLearnNum = learnerNum;
 	    }
 	  program.push_back(new instruction(tok[17]));
-
 	}
     }
   /* Create a final learner from all the previous instructions */
   action = stringToLong(tok[8]);
   l = new learner(1, action, _maxProgSize, _dim, program);
-  ostringstream oss;
-  oss << " lid " << l->id() << " act " << l->action();
-  oss << " size " << l->size() << " esize " << l->esize();
-  cout << l->printBid("");
-  
-  /* The following are variables we need to set */
+  t->addLearner(l);
 
-  /* Bid program. This is what we need to read from the output file. */
-  //  vector < instruction * > _bid;
-
-  return 0;
+  return t;
 }
 
 int main(int argc, 
@@ -121,10 +112,9 @@ int main(int argc,
   vector < string > bestteam = endOfStreamToVector(infile, foundAt);
   
   
-  makeTeam(bestteam);
-  cout << "Lines read: " << bestteam.size() << endl;
-  cout << "First line: " << bestteam[1] << endl;
-  
+  team* t = makeTeam(bestteam);
+  cout << "Team output: " << endl;
+  cout << t->printBids("");
   return 0;
 }
 
