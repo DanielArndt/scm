@@ -16,11 +16,6 @@ vector < string > endOfStreamToVector(ifstream &infile, int offset)
   vector < string > lines;
   infile.seekg(-offset, ios_base::end);
   
-  /* Throw away first line */
-  //string *tmp = new string();
-  //getline(infile, *tmp);
-  //delete tmp;
-  
   while (!infile.eof()){
     string tmp;
     getline(infile, tmp);
@@ -30,7 +25,7 @@ vector < string > endOfStreamToVector(ifstream &infile, int offset)
   return lines;
 }
 
-int createLearners(vector < string > fileEnd)
+int makeTeam(vector < string > fileEnd)
 {
   learner *l;
   string line;
@@ -62,8 +57,8 @@ int createLearners(vector < string > fileEnd)
 	    l = new learner(1, action, _maxProgSize, _dim, program);
 	    ostringstream oss;
 	    oss << " lid " << l->id() << " act " << l->action();
-	    oss << " size " << l->size() << " esize " << l->esize() ;
-	    cout << l->printBid("prefix")l;
+	    oss << " size " << l->size() << " esize " << l->esize();
+	    cout << l->printBid("");
 	}
 	prevLearnNum = learnerNum;
       }
@@ -112,12 +107,12 @@ int main(int argc,
   int foundAt = findLastOccurrence(argv[2], "explicitEnv::test");
   cout << "Found at: " << foundAt << endl;
   
-  vector < string > lines = endOfStreamToVector(infile, foundAt);
+  vector < string > bestteam = endOfStreamToVector(infile, foundAt);
   
   
-  createLearners(lines);
-  cout << "Lines read: " << lines.size() << endl;
-  cout << "First line: " << lines[1] << endl;
+  makeTeam(bestteam);
+  cout << "Lines read: " << bestteam.size() << endl;
+  cout << "First line: " << bestteam[1] << endl;
   
   return 0;
 }
