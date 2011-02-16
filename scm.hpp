@@ -216,6 +216,9 @@ public:
 
   void initPoints();
   void genPoints(long);
+  
+  inline void addTeam(team *m)
+  { _M.insert(m); }
 
   inline void evaluate(team *m, point *p, string prefix) 
   { double n; m->setOutcome(p, _trainEnv->evaluate(m, p, false, n, prefix, true)); m->setMargin(p, n); }

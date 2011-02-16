@@ -19,10 +19,10 @@ scm : main.o misc.o learner.o team.o point.o env.o scm.o
 	$(CC) -o scm main.o misc.o learner.o team.o point.o env.o scm.o
 #	$(CC) -pg -o scm main.o misc.o learner.o team.o point.o env.o scm.o
 
-rerun : rerun.o misc.o learner.o team.o point.o
-	$(CC) -o rerun rerun.o misc.o learner.o team.o point.o
+rerun : rerun.o misc.o learner.o team.o point.o env.o scm.o
+	$(CC) -o rerun rerun.o misc.o learner.o team.o point.o env.o scm.o
 
-rerun.o : rerun.cpp misc.hpp learner.hpp team.hpp point.hpp
+rerun.o : rerun.cpp $(INCLUDE)
 	$(CC) $(FLAGS) rerun.cpp
 
 misc.o : misc.cpp $(INCLUDE)

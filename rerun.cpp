@@ -4,6 +4,8 @@
 #include "learner.hpp"
 #include "team.hpp"
 #include "point.hpp"
+#include "env.hpp"
+#include "scm.hpp"
 #include <iterator>
 
 using namespace std;
@@ -29,7 +31,7 @@ team* makeTeam(vector < string > fileEnd)
 {
   vector < team* >* mlev = new vector < team *>();
   mlev->push_back(0);
-  team *t = new team(1, mlev, 1);
+  team *t = new team(0, mlev, -1);
   learner *l;
   string line;
   long action = -1;
@@ -111,8 +113,13 @@ int main(int argc,
   
   vector < string > bestteam = endOfStreamToVector(infile, foundAt);
   
-  
+  scmExplicit *model = new scmExplicit(args);
   team* t = makeTeam(bestteam);
+  model->addTeam(t);
+  model->test(0);
+  
+  delete model;
+  
   cout << "Team output: " << endl;
   cout << t->printBids("");
   return 0;
