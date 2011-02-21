@@ -35,7 +35,6 @@ team* makeTeam(vector < string > fileEnd)
   learner *l;
   string line;
   long action = -1;
-  long prevAction = -1;
   int learnerNum = -1;
   int prevLearnNum = -1;
   vector < instruction* > program;
