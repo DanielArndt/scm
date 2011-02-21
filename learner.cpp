@@ -43,6 +43,29 @@ const short learner::_srcShift = learner::_modeMask.count() + learner::_opMask.c
 
 long learner::_count = 0;
 
+learner::learner()
+  : _id(_count++), _nrefs(0)
+{
+  
+};
+
+void learner::copyin(long gtime,
+		     long action,
+		     long dim,
+		     vector < instruction* >& program)
+{
+  _gtime = gtime;
+  _action = action;
+  _dim = dim;
+  int size = program.size();
+  /* Copy in program */
+  for(int i = 0; i < size; i++)
+    {
+      _bid.push_back(program[i]);
+    }
+  markIntrons(_bid);
+}
+
 learner::learner(long gtime, 
 		 long action,
 		 int maxProgSize,
@@ -68,7 +91,6 @@ learner::learner(long gtime,
 
 learner::learner(long gtime, 
 		 long action,
-		 int maxProgSize,
 		 long dim,
 		 vector < instruction* >& program)
   : _id(_count++), _gtime(gtime), _action(action), _dim(dim), _nrefs(0)

@@ -95,6 +95,10 @@ private:
   void markIntrons(vector < instruction * > &);
   
 public:
+  
+  /* Create empty learner. */
+  learner();
+  void copyin(long, long, long, vector < instruction* >&);
 
   /* Create arbitrary learner. */
   learner(long, long, int, long);
@@ -103,7 +107,7 @@ public:
   learner(long, learner &);
   
   /* Create learner with specified bidding program. */
-  learner(long, long, int, long, vector < instruction* >&);
+  learner(long, long, long, vector < instruction* >&);
   
   ~learner();
   

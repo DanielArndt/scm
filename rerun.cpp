@@ -12,6 +12,7 @@ using namespace std;
 
 int _maxProgSize;
 int _dim;
+int _omega;
 
 vector < string > endOfStreamToVector(ifstream &infile, int offset)
 {
@@ -32,13 +33,19 @@ team* makeTeam(vector < string > fileEnd)
   vector < team* >* mlev = new vector < team *>();
   mlev->push_back(0);
   team *t = new team(0, mlev, -1);
-  learner *l;
   string line;
   long action = -1;
   int learnerNum = -1;
   int prevLearnNum = -1;
   vector < instruction* > program;
   vector < string > tok;
+  /* An array of learner pointers the size of the biggest possible team. This
+   * allows us to ensure ordering in the team's set of learners. Ordering is
+   * important because some evaluations default to the first "high bid"
+   * if all high bids are close enough. See macro BID_EPSILON */
+  learner* lptrs = new learner[_omega];
+  /* Learner count for moving throuhg the above pointer array. */
+  int count=0;
   
   vector < string >::iterator fiter, fiterend;
   for (fiter = fileEnd.begin(), fiterend = fileEnd.end(); fiter != fiterend; fiter++)
@@ -63,8 +70,8 @@ team* makeTeam(vector < string > fileEnd)
 	      if (prevLearnNum != -1)
 		{
 		    /* Create a learner from all the previous instructions */
-		    l = new learner(1, action, _maxProgSize, _dim, program);
-		    t->addLearner(l);
+		    lptrs[count].copyin(1, action, _dim, program);
+		    t->addLearner(&lptrs[count++]);
 		    program.clear();
 		}
 	      action = stringToLong(tok[8]);
@@ -74,8 +81,8 @@ team* makeTeam(vector < string > fileEnd)
 	}
     }
   /* Create a final learner from all the previous instructions */
-  l = new learner(1, action, _maxProgSize, _dim, program);
-  t->addLearner(l);
+  lptrs[count].copyin(1, action, _dim, program);
+  t->addLearner(&lptrs[count]);
 
   return t;
 }
@@ -90,7 +97,6 @@ int main(int argc,
   /* First, lets make sure that we're in a dataSetEnv.. */
   if((ariter = args.find("envType")) == args.end())
     die(__FILE__, __FUNCTION__, __LINE__, "cannot find arg envType");
-
   if (ariter->second.compare("datasetEnv"))
     die(__FILE__, __FUNCTION__, __LINE__, "this program requires a datasetEnv");
   
@@ -99,6 +105,11 @@ int main(int argc,
   
   _maxProgSize = stringToInt(ariter->second);
   cout << "_maxProgSize = " << _maxProgSize << endl;
+  
+  if((ariter = args.find("omega")) == args.end())
+    die(__FILE__, __FUNCTION__, __LINE__, "cannot find arg omega");
+  
+  _omega = stringToInt(ariter->second);
   
   if((ariter = args.find("setDim")) == args.end())
     die(__FILE__, __FUNCTION__, __LINE__, "cannot find arg setDim");
@@ -117,11 +128,11 @@ int main(int argc,
   team* t = makeTeam(bestteam);
   model->addTeam(t);
   model->test(0);
-  
-  delete model;
-  
   cout << "Team output: " << endl;
   cout << t->printBids("");
+  
+  delete t;
+  delete model;
   return 0;
 }
 
