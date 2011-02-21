@@ -54,7 +54,9 @@ team* makeTeam(vector < string > fileEnd)
       if (tok[0].compare("explicitEnv::test"))
 	{
 	  learnerNum = stringToInt(tok[4]);
-	  /* Check if we are on a new learner */
+	  /* Check if we are constructing a new learner. If yes, create a new
+	   * learner from the previous instructions, if not, just push the new
+	   * instruction to the program. */
 	  if ((learnerNum != prevLearnNum))
 	    {
 	      /* TODO: We are breaking the 3 indent rule here.
@@ -62,18 +64,17 @@ team* makeTeam(vector < string > fileEnd)
 	      if (prevLearnNum != -1)
 		{
 		    /* Create a learner from all the previous instructions */
-		    action = stringToLong(tok[8]);
 		    l = new learner(1, action, _maxProgSize, _dim, program);
 		    t->addLearner(l);
 		    program.clear();
 		}
+	      action = stringToLong(tok[8]);
 	      prevLearnNum = learnerNum;
 	    }
 	  program.push_back(new instruction(tok[17]));
 	}
     }
   /* Create a final learner from all the previous instructions */
-  action = stringToLong(tok[8]);
   l = new learner(1, action, _maxProgSize, _dim, program);
   t->addLearner(l);
 
