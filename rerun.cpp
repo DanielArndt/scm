@@ -117,6 +117,16 @@ int main(int argc,
   _dim = stringToInt(ariter->second);
   cout << "_dim = " << _dim << endl;
   
+  if((ariter = args.find("testSetName")) == args.end())
+    die(__FILE__, __FUNCTION__, __LINE__, "cannot find arg testSetName");
+  
+  ariter->second = argv[3];
+
+  if((ariter = args.find("testSetSize")) == args.end())
+    die(__FILE__, __FUNCTION__, __LINE__, "cannot find arg setDim");
+
+  ariter->second = argv[4];
+  
   //createLearners();
   ifstream infile(argv[2], ios::in);
   int foundAt = findLastOccurrence(argv[2], "explicitEnv::test");
