@@ -56,6 +56,8 @@ public:
   virtual double test(team *, string, bool) = 0;
 
   virtual long dim() = 0;
+  
+  virtual string myclass() { return "env"; }
 };
 
 /***********************************************************************************************************/
@@ -109,6 +111,8 @@ public:
 
   /* Distance between two state vectors in this environment. */
   virtual double distance(vector < double > &, vector < double > &) = 0;
+  
+  virtual string myclass() { return "implicitEnv"; }
 };
 
 /***********************************************************************************************************/
@@ -292,6 +296,8 @@ public:
 
   inline long dim()
   { return _dim; }
+  
+  virtual string myclass() { return "rubikEnv"; }
 };
 
 /***********************************************************************************************************/
@@ -362,6 +368,78 @@ public:
 
   inline long dim()
   { return _dim; }
+  
+  virtual string myclass() { return "backupEnv"; }
+};
+
+/***********************************************************************************************************/
+class rpropEnv : public implicitEnv
+{
+  /* Parameters. */
+  
+  
+  long _dim, _maxRpropGens;
+  double _maxX, _initialWeight, _initialUpdate, _maxUpdate, _minUpdate,
+  _increaseFactor, _decreaseFactor, _rpropAccuracy;
+
+  point * initUniformPoint(long);
+  
+  double line(vector < double >&);
+  
+  double sign(double);
+  
+  double error(point*, vector< double>*);
+  
+  /* Preforms the summed gradient. This could be inline, would it be faster? */
+  void sumGradient(vector< double >*, vector< double >&, set< point* >&, vector< double >&);
+  
+  public:
+
+    /* Calculate the SSE of a given cluster and the weight values */
+    double calcSSE(set < point* >*, vector< double >*);
+    
+    /* Map from a pair of (teamID,learnerID) to the cluster it classifies */
+    map < pair < long, unsigned long >, set< point* >* > _cluster;
+    
+    /* Map from a (learnerID)->(teamID, SSE) with respect to
+     * the team (not to be confused with rprop's error). */
+    map < unsigned long, pair<long, double > > _error;
+    
+    /* Map from learnerIDs to their weights. */
+    map < unsigned long, vector < double >* > _weights;
+    
+    /* Map from learnerIDs to their update values. */
+    map < unsigned long, vector < double >* > _updateValue;
+    
+    /* Map from learnerIDs to their derivatives. */
+    map < unsigned long, vector < double >* > _derivatives, _prevDerivatives;
+    
+    rpropEnv(long, long, long, long, long, double, double, double, double, double,
+             double, double, double, bool, int);
+    ~rpropEnv()
+    {};
+    
+    
+    double act(point *, long, vector < double > &, long, bool &);
+    point * initUniformPoint(long, set < long > &);
+    point * genPoint(long, point *, point *);
+    
+    
+    void rprop(set<point*>*, unsigned long);
+    
+    double test(team* , string , bool );
+    double test2(team *, string, bool, set < point * > &);
+    double distance(vector < double > &, vector < double > &);
+    
+    void cluster(team*, point*);
+    
+    long numActions()
+    { return 10; }
+    
+    inline long dim()
+    { return _dim; }
+    
+    virtual string myclass() { return "rpropEnv"; }
 };
 
 /***********************************************************************************************************/

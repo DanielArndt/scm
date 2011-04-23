@@ -49,21 +49,23 @@ int main(int argc,
     die(__FILE__, __FUNCTION__, __LINE__, "cannot find arg envType");
   
   if(ariter->second == "datasetEnv")
-    {
-      model = new scmExplicit(args);
-      model->go();
-      delete model;
-    }
-  else if(ariter->second == "backupEnv" || ariter->second == "rubikEnv")
-    {
-      model = new scmImplicit(args);
-      model->go();
-      delete model;
-    }
+  {
+    model = new scmExplicit(args);
+    model->go();
+    delete model;
+  }
+  else if(ariter->second == "backupEnv" || 
+    ariter->second == "rubikEnv" ||
+    ariter->second == "rpropEnv")
+  {
+    model = new scmImplicit(args);
+    model->go();
+    delete model;
+  }
   else
-    {
-      die(__FILE__, __FUNCTION__, __LINE__, "bad arg envType");
-    }
+  {
+    die(__FILE__, __FUNCTION__, __LINE__, "bad arg envType");
+  }
  
   return 0; 
 }

@@ -1,5 +1,9 @@
 #include "env.hpp"
 
+//#define MYDEBUG
+
+#define WEIGHT_UPDATE(i) (-sign((*derivatives)[i]) * update_value[i])
+
 /***********************************************************************************************************/
 
 long implicitEnv::_count = 0;
@@ -22,6 +26,15 @@ const double backupEnv::_ySE = -50;
 
 const long rubikEnv::_dim = 54;
 const long backupEnv::_dim = 4;
+
+double rpropEnv::sign(double x)
+{
+  if (x > 0.0)
+    return 1.0;
+  if (x < 0.0)
+    return -1.0;
+  return 0.0;
+}
 
 /***********************************************************************************************************/
 
@@ -99,6 +112,7 @@ double env::evaluate(team *m,
   
   double rewardSum = 0; /* Total reward. */
   long action = 0;
+  double output = 0.0;
   
   bool end = false; /* Is the episode over? */
   
@@ -121,18 +135,45 @@ double env::evaluate(team *m,
       bid1.clear();
       bid2.clear();
       
-      action = m->getAction(state, winner, bid1, bid2, updateActive);
-      rewardSum += act(p, action, state, steps++, end);
+      if(myclass().compare("rpropEnv") == 0)
+      {
+        //We are in an rprop environment. Do rprop specific things.
+        m->getAction(state, winner, bid1, bid2, updateActive);
+        //Calc error
+        rewardSum += act(p, winner.front()->id(), state, steps++, end);
+        
+        rpropEnv* my_rpropEnv = dynamic_cast<rpropEnv*>(this);
+        if (my_rpropEnv->_weights[winner.front()->id()] != 0)
+        {
+          vector<double> weights = *(my_rpropEnv->_weights[winner.front()->id()]);
+
+          for(i=0; i<winner.front()->dim();i++) output += weights[i] * state[i];
+          output += weights[winner.front()->dim()];
+        }
+      }
+      else
+      {
+        action = m->getAction(state, winner, bid1, bid2, updateActive);
+        rewardSum += act(p, action, state, steps++, end);
+      }
       
       margin += fabs(bid1.back() - bid2.back());
       
       if(showState == true && (steps == 0 || end == true || (steps % SHOWSTATE_MOD == 0)))
 	{
-	  cout << prefix << " env::evaluate tm " << m->id() << " ptid " << p->id() << " ts " << steps << " st" << vecToStr(state);
+          cout << prefix << " env::evaluate tm " << m->id() << " ptid " << p->id() << " lrnid " << winner.front()->id() << " ts " << steps << " st" << vecToStr(state);
 	  cout << " winacts"; for(i = 0; i < winner.size(); i++) cout << " " << winner[i]->action();
 	  cout << " action " << action; /* This is redundant since it should be the same as winner[0]. */
 	  cout << " bid1" << vecToStr(bid1);
 	  cout << " bid2" << vecToStr(bid2);
+          if(myclass().compare("rpropEnv") == 0)
+          {
+            rpropEnv* my_rpropEnv = dynamic_cast<rpropEnv*>(this);
+            vector<double> weights = *(my_rpropEnv->_weights[winner.front()->id()]);
+            cout << " weights";
+            for(i=0; i<winner.front()->dim()+1;i++) cout << " "  << weights[i];
+            cout << " output " << output;
+          }
 	  if(end == true)
 	    cout << " endeval";
 	  else
@@ -2364,6 +2405,463 @@ double backupEnv::test(team *tm,
   cout << endl;
 
   return score;
+}
+
+/***********************************************************************************************************/
+
+rpropEnv::rpropEnv(long maxSteps,
+                   long dim,
+                   long numTestPoints,
+                   long numValidPoints,
+                   long maxRpropGens,
+                   double maxX,
+                   double initialWeight,
+                   double initialUpdate,
+                   double maxUpdate,
+                   double minUpdate,
+                   double increaseFactor,
+                   double decreaseFactor,
+                   double rpropAccuracy,
+                   bool useBinaryFitness,
+		   int seed)
+                   
+                   : implicitEnv(maxSteps, numTestPoints, numValidPoints, useBinaryFitness, seed),
+                   _dim(dim), _maxRpropGens(maxRpropGens), _maxX(maxX), 
+                   _initialWeight(initialWeight), _initialUpdate(initialUpdate), 
+                   _maxUpdate(maxUpdate), _minUpdate(minUpdate), 
+                   _increaseFactor(increaseFactor), 
+                   _decreaseFactor(decreaseFactor), _rpropAccuracy(rpropAccuracy)
+{
+  /* Populate test points. */
+  cout << "rpropEnv::rpropEnv dim " << _dim;
+  cout << " maxRpropGens " << _maxRpropGens;
+  cout << " maxX " << _maxX;
+  cout << " initialWeight " << _initialWeight;
+  cout << " initialUpdate " << _initialUpdate;
+  cout << " maxUpdate minUpdate " << _maxUpdate << " " << _minUpdate;
+  cout << " increaseFactor decreaseFactor " << _increaseFactor << " " << _decreaseFactor;
+  cout << " rpropAccuracy " << _rpropAccuracy;
+
+  point* p = 0;
+  
+  while(_testPoints.size() < _numTestPoints)
+  {
+    do
+    {
+      if(p != 0)
+        delete p;
+      
+      p = initUniformPoint(-2);
+    }
+    while(p->isPointUnique(_testPoints) == false);
+    
+    _testPoints.push_back(p);
+    p = 0;
+  }
+  p = 0;
+  
+  while(_validPoints.size() < _numValidPoints)
+  {
+    do
+    {
+      if(p != 0)
+        delete p;
+      
+      p = initUniformPoint(-2);
+    }
+    while(p->isPointUnique(_validPoints) == false);
+    
+      _validPoints.push_back(p);
+    p = 0;
+  }
+}
+
+/***********************************************************************************************************/
+
+double rpropEnv::line(vector < double >& x)
+{
+  double y;
+  y = 1.57 + (2.13 * sin(x[0]));
+  return y;
+}
+
+/***********************************************************************************************************/
+
+double rpropEnv::error(point* point, vector< double >* weight)
+{
+  vector< double > input;
+  double output=0.0;
+  double error;
+  point->state(input);
+  for (int ind=_dim-1; ind >= 0; ind--)
+  {
+    //Multiply all inputs by their weight
+    output += input[ind] * (*weight)[ind];
+  }
+  output += (*weight)[_dim];
+  error = input[_dim] - output;
+  return error;
+}
+
+/***********************************************************************************************************/
+
+double rpropEnv::calcSSE(set< point* >* pointset, vector< double >* weights)
+{
+  double sse=0.0;
+  set< point* >::iterator poiter, poiterend;
+  for(poiter = pointset->begin(), poiterend = pointset->end(); poiter != poiterend; poiter++)
+  {
+    sse += pow(error((*poiter), weights),2);
+  }
+  return sse;
+}
+
+/***********************************************************************************************************/
+
+double rpropEnv::act(point *p,
+                     long action, 
+                     vector < double > &state,
+                     long steps,
+                     bool &end)
+{
+  /* When this function is called, we replace action with the index of the 
+   * learner. This is then casted back to an unsinged long to allow us to read
+   * the weights which will calculate the actual action */
+  
+  static const unsigned long cost_of_skynet = 999999999;
+  unsigned long learner_index = action;
+  end = true;
+  p->state(state);
+  
+  
+  // Calculate error
+  double output=0.0;
+  //TODO: Fix this roundabout way of skipping if _weights not generated yet
+  //      This happens when stat is called.
+  if (_weights[learner_index] == 0)
+  {
+    return 0.0;
+    //output = (double)_dim * _initialWeight + _initialWeight;
+  }
+  else
+  {
+    for (int i=_dim-1; i >= 0; i--)
+    {
+      output += (*(_weights[learner_index]))[i] * state[i];
+    }
+    output += (*(_weights[learner_index]))[_dim];
+  }
+  double error = fabs(state[_dim] - output);
+  
+  //TODO This value is somewhat arbitrary...
+  //if(error < 0.005) p->solved(true); /* Mark the point as solved. */
+  return 1.0 / (pow(error,2)+1);
+}
+
+/***********************************************************************************************************/
+
+point * rpropEnv::initUniformPoint(long gtime)
+{
+  /* Currently only counts for a hard coded line of 1 dimension. */
+
+  long label = _count++;
+  
+  double x;
+  
+  vector < double > state;
+  
+  /* Populate test and validation points over [-maxX, maxX] */
+  for (int i = _dim; i > 0; i--)
+  {
+    x = ((drand48() * _maxX * 2) - _maxX);
+    state.push_back(x);
+  }
+  
+  /* Push the values of the plane in here */
+  state.push_back(line(state));
+  
+#ifdef MYDEBUG
+  cout << "rprop::initUniformPoint st " << vecToStr(state) << endl;
+#endif
+  
+  return new point(label, _dim + 1, gtime, &state[0], label);
+}
+
+/***********************************************************************************************************/
+
+point * rpropEnv::initUniformPoint(long gtime, 
+                                    set < long > &usedIds)
+{
+  /* Currently only counts for a hard coded line of 2 dimensions. */
+
+  long label = _count++;
+  
+  double x;
+  
+  vector < double > state;
+
+  /* Populate test and validation points over [-maxX, maxX] */
+  for (int i = _dim; i > 0; i--)
+  {
+    x = ((drand48() * _maxX * 2) - _maxX);
+    state.push_back(x);
+  }
+  state.push_back(line(state));
+
+#ifdef MYDEBUG
+  cout << "rprop::initUniformPoint st " << vecToStr(state) << endl;
+#endif
+  
+  return new point(label, _dim + 1, gtime, &state[0], label);
+}
+
+/***********************************************************************************************************/
+
+point * rpropEnv::genPoint(long gtime,
+                            point *p1,
+                            point *p2)
+{  
+  long label = _count++;
+  
+  double x;
+  
+  vector < double > state;
+
+  /* Populate test and validation points over [-maxX, maxX] */
+  for (int i = _dim; i > 0; i--)
+  {
+    x = ((drand48() * _maxX * 2) - _maxX);
+    state.push_back(x);
+  }
+  state.push_back(line(state));
+
+#ifdef MYDEBUG
+  cout << "rpropEnv::genPoint st " << vecToStr(state) << endl;
+#endif
+
+  return new point(label, _dim + 1, gtime, &state[0], label);
+}
+/***********************************************************************************************************/
+void rpropEnv::rprop(set < point* >* points,
+                     unsigned long learner_id)
+{
+  vector < double >*& derivatives = _derivatives[learner_id];
+  vector < double >*& prev_derivatives = _prevDerivatives[learner_id];
+  vector < double>& weight = (*_weights[learner_id]);
+  vector < double>& update_value = (*_updateValue[learner_id]);
+  //Initialize and reserve space for derivatives
+  if (derivatives == 0)
+  {
+    derivatives = new vector <double> ();
+    derivatives->reserve(_dim + 1);
+  }
+  if (prev_derivatives == 0)
+  {
+    prev_derivatives = new vector <double> ();
+    prev_derivatives->reserve(_dim + 1);
+  }
+  for (int t=0; t < _maxRpropGens; t++)
+  {
+    delete prev_derivatives;
+    prev_derivatives = derivatives;
+    derivatives = new vector < double >();
+    derivatives->reserve(_dim + 1);
+    sumGradient(derivatives, update_value, *points, weight);
+    //bool converged = true;
+    for (int ind=0; ind < _dim + 1; ind++)
+    {
+      //Rather than copy the derivatives, we only set them to 0 in the case the
+      //sign changes. We copy the pointer in sumGradient() to copy derivatives
+      //to the previous derivatives place
+      if (sign((*prev_derivatives)[ind]) * sign((*derivatives)[ind]) > 0.0)
+      {
+        update_value[ind] = min<double>(update_value[ind] * _increaseFactor, _maxUpdate);
+        weight[ind] = weight[ind] + WEIGHT_UPDATE(ind);
+      }
+      else if (sign((*prev_derivatives)[ind]) * sign((*derivatives)[ind]) < 0.0)
+      {
+        update_value[ind] = max<double>(update_value[ind] * _decreaseFactor, _minUpdate);
+        (*derivatives)[ind] = 0.0;
+      }
+      else
+      {
+        weight[ind] = weight[ind] + WEIGHT_UPDATE(ind);
+      }
+    }
+  }
+}
+
+/******************************************************************************/
+void rpropEnv::sumGradient(vector<double>* derivatives, 
+                           vector<double>& update_value,
+                           set<point*>& points,
+                           vector<double>& weight)
+{
+  set < point* >::iterator poiter, poiterend;
+  vector <double> input;
+  for (int i=_dim + 1; i > 0; i--)
+  {
+    //Set all derivatives and update values to their initial value
+    derivatives->push_back(0.0);
+  }
+
+  for (poiter = points.begin(), poiterend = points.end(); poiter != poiterend; poiter++)
+  { 
+    //Iterate over all points
+    double output=0.0;
+    double error;
+
+    (*poiter)->state(input);
+    for (int ind=0; ind < _dim; ind++)
+    {
+      //Multiply all inputs by their weight
+      output += input[ind] * weight[ind];
+    }
+    //Add the bias to the output
+    //cout << "Bias: " << weight[_dim] << endl;
+    output += weight[_dim];
+    error = input[_dim] - output;
+    //Subtract the output from the target value
+   
+    for (int ind=0; ind < _dim; ind++)
+    {
+      //Update the error attributed to each weight
+      (*derivatives)[ind] += -(error * input[ind]);
+    }
+    //Error for bias
+    (*derivatives)[_dim] = -(error);
+  }
+}
+
+/***********************************************************************************************************/
+
+double rpropEnv::test2(team *tm,
+                        string prefix,
+                        bool showState,
+                        set < point * > &tpoints)
+{
+  vector < point * > testPoints;
+
+  vector < double > state;
+  
+  double reward;
+  double rewardSum = 0;
+  double minReward = HUGE_VAL;
+  
+  long solved=0;
+  
+  double score;
+
+  double margin;
+  double sumMargin = 0;
+  
+  testPoints.insert(testPoints.begin(), tpoints.begin(), tpoints.end());
+
+  cout << setprecision(4);
+  
+  for(int i = 0; i < testPoints.size(); i++)
+  {
+    testPoints[i]->state(state);
+    
+    reward = evaluate(tm, testPoints[i], showState, margin, prefix, true);
+    rewardSum += reward;
+    //cout << "Test2: rewardSum: " << rewardSum << endl;
+    sumMargin += margin;
+    
+    if(reward < minReward) minReward = reward;
+    
+    cout << prefix << " rpropEnv::test2 tm " << tm->id() << " test " << i << " ptid " << testPoints[i]->id();
+    cout << " istate" << vecToStr(state) << " estate";
+    
+    //TODO This value is somewhat arbitrary. How close should they be? 0.82
+    //     is equivalent to ~0.5 error. 0.95 is ~0.1 error. 0.976 is ~0.05
+    if(reward > 0.976)
+    {
+      solved++;
+      cout << " solved 1";
+    }
+    else
+    {
+      cout << " solved 0";
+    }
+    
+    
+    cout << " margin " << margin;
+    
+    cout << endl;
+  }
+  
+  score = rewardSum / testPoints.size();
+  
+  cout << prefix << " rpropEnv::test2 agg tm " << tm->id();
+  cout << " minscore " << minReward << " meanscore " << score << " meanmargin " << sumMargin / testPoints.size();
+  cout << " solved " << solved;
+  cout << " of " << testPoints.size();
+  
+  cout << endl;
+
+  return score;
+}
+
+/***********************************************************************************************************/
+
+double rpropEnv::test(team *tm,
+                        string prefix,
+                        bool showState)
+{
+  //TODO Finish this
+  long id = tm->id();
+  cout << "This is the prefix: " << prefix << endl;
+  double score = 0.0;
+  return score;
+}
+
+/***********************************************************************************************************/
+
+double rpropEnv::distance(vector < double > & x, vector < double > & y)
+{
+  return EuclideanDistSqrd(&x[0], &y[0], _dim);
+}
+
+/***********************************************************************************************************/
+
+/* Insert the (team, learner) pair into the list of clusters */
+void rpropEnv::cluster(team *m,
+                       point *p)
+{
+  /* Winner at each level. */
+  vector < learner * > winner;
+  vector < double > bid1; /* First and second highest bid at each level. */
+  vector < double > bid2;
+  vector < double > state;
+  p->state(state);
+  
+  m->getAction(state, winner, bid1, bid2, false);
+  pair < long, unsigned long> team_learner_pair = make_pair(m->id(), winner.front()->id());
+  if (_cluster[team_learner_pair] == 0)
+  {
+    //If (team,learner) pair does not already have a set started, make one
+    _cluster[team_learner_pair] = new set<point*>();
+  }
+  _cluster[team_learner_pair]->insert(p);
+  
+  //Initialize the error for the learner if non existant
+  _error[winner.front()->id()] = make_pair<long,double>(-1,HUGE_VAL);
+  
+  //Initialize all weights of the learner
+  if (_weights[winner.front()->id()] == 0)
+  {
+    if (_updateValue[winner.front()->id()] != 0) 
+      die(__FILE__, __FUNCTION__, __LINE__, "Update value error");
+    _weights[winner.front()->id()] = new vector<double>();
+    _updateValue[winner.front()->id()] = new vector<double>();
+    for (int i=0; i < dim() + 1; i++)
+    {
+      //TODO better way of randomizing?
+      _weights[winner.front()->id()]->push_back(_maxUpdate*2*drand48()-_maxUpdate);
+      _updateValue[winner.front()->id()]->push_back(_initialUpdate);
+    }
+  }
 }
 
 /***********************************************************************************************************/

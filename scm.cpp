@@ -584,6 +584,22 @@ void scm::genTeams(long t,
 	      if(drand48() < _pmn)
 		lr->muAction(((long) (drand48() * numActions(level))));
 		  
+              if (this->myclass().compare("scmImplicit") == 0)
+              {
+                implicitEnv* env = dynamic_cast<scmImplicit*>(this)->env();
+                if (env->myclass().compare("rpropEnv") == 0)
+                {
+                  rpropEnv* my_rpropEnv = dynamic_cast<rpropEnv*>(env);
+                  if ((my_rpropEnv->_weights[(*leiter)->id()] != 0) && 
+                    (my_rpropEnv->_weights[lr->id()] == 0))
+                  {
+                    my_rpropEnv->_weights[lr->id()] = new vector<double>(*(my_rpropEnv->_weights[(*leiter)->id()]));
+                    my_rpropEnv->_updateValue[lr->id()] = new vector<double>(*(my_rpropEnv->_updateValue[(*leiter)->id()]));
+                    my_rpropEnv->_derivatives[lr->id()] = new vector<double>(*(my_rpropEnv->_derivatives[(*leiter)->id()]));
+                  }
+                }
+              }
+              
 	      (*cm)->addLearner(lr);
 	      _L.insert(lr);
 	    }
@@ -1120,15 +1136,28 @@ void scm::cleanup(long t,
   
   size = learnervec.size();
   for(i = 0; i < size; i++)
+  {
+    if(learnervec[i]->refs() == 0)
     {
-      if(learnervec[i]->refs() == 0)
-	{
-	  /* Zero references, delete this learner. */
-	  
-	  _L.erase(learnervec[i]);
-	  delete learnervec[i];
-	}
+      /* Zero references, delete this learner. */
+      if (this->myclass().compare("scmImplicit") == 0)
+      {
+        implicitEnv* env = dynamic_cast<scmImplicit*>(this)->env();
+        if (env->myclass().compare("rpropEnv") == 0)
+        {
+          //We are in an rprop environment. Delete rprop specific
+          //things.
+          rpropEnv* my_rpropEnv = dynamic_cast<rpropEnv*>(env);
+          delete my_rpropEnv->_weights[learnervec[i]->id()];
+          my_rpropEnv->_weights.erase(learnervec[i]->id());
+          delete my_rpropEnv->_updateValue[learnervec[i]->id()];
+          my_rpropEnv->_updateValue.erase(learnervec[i]->id());
+        }
+      }
+      _L.erase(learnervec[i]);
+      delete learnervec[i];
     }
+  }
 
 #ifdef MYDEBUG
   int sumTeamSizes, nrefs, sumNumOutcomes;
@@ -1313,6 +1342,59 @@ bool scm::saveTestPoint(long level,
 }
 
 /***********************************************************************************************************/
+inline void scm::rprop(){
+  if (this->myclass().compare("scmImplicit") == 0)
+  {
+    implicitEnv* env = dynamic_cast<scmImplicit*>(this)->env();
+    if (env->myclass().compare("rpropEnv") == 0)
+    {
+      rpropEnv* my_rpropEnv = dynamic_cast<rpropEnv*>(env);
+      set < team * > :: iterator teiter, teiterend;
+      set < point * > :: iterator poiter, poiterend;
+      
+      
+      for(poiter = _P.begin(), poiterend = _P.end(); poiter != poiterend; poiter++)
+        for(teiter = _M.begin(), teiterend = _M.end(); teiter != teiterend; teiter++)
+        {
+          my_rpropEnv->cluster(*teiter, *poiter);
+        }
+      
+      map < pair < long, unsigned long >, set< point* >* >::iterator cliter, cliterend;
+      
+      for (cliter = my_rpropEnv->_cluster.begin(), cliterend = my_rpropEnv->_cluster.end(); 
+           cliter != cliterend; 
+           cliter++)
+       {
+	 //Iterate over each cluster and calculate the error, keep the error
+	 //which is lowest stored in the error map with the team that it
+	 //scored lowest on.
+	 set<point*>* cluster = (*cliter).second;
+	 unsigned int learner_id = (*cliter).first.second;
+	 vector<double>* weights = my_rpropEnv->_weights[learner_id];
+	 double error = my_rpropEnv->calcSSE(cluster, weights);         
+         //Check if the error of this (team, learner) pair less than the error 
+         //of any previous one. If so, replace it.
+	 if (error < (my_rpropEnv->_error[learner_id]).second)
+	 {
+	   long team_id = (*cliter).first.first;
+	   pair <long, double> error_pair = make_pair(team_id, error);
+           my_rpropEnv->_error[(*cliter).first.second] = error_pair;
+	 }
+       }
+       for (cliter = my_rpropEnv->_cluster.begin(); cliter != cliterend; cliter++)
+       {
+         //Preform RPROP
+         set<point*>* cluster = (*cliter).second;
+         unsigned int learner_id = (*cliter).first.second;
+         my_rpropEnv->rprop(cluster, learner_id);
+         delete cliter->second;
+       }
+       //Reset all clusters and errors
+      my_rpropEnv->_error.clear();
+      my_rpropEnv->_cluster.clear();
+    }
+  }
+}
 
 void scm::go()
 {
@@ -1340,8 +1422,9 @@ void scm::go()
       /* Initialization. */
       
       initPoints();
-      initTeams(level);
-      
+      initTeams((level));
+      //Only preform rprop on level 1
+      if (!(level)) rprop();
       /* Evaluate initial set of teams. */
       
       for(poiter = _P.begin(), poiterend = _P.end(); poiter != poiterend; poiter++)
@@ -1369,7 +1452,9 @@ void scm::go()
       
 	  genPoints(t);
 	  genTeams(t, level);
-
+          
+          //Only preform rprop on level 1
+          if (!(level)) rprop();
 	  for(poiter = _P.begin(), poiterend = _P.end(); poiter != poiterend; poiter++)	
 	    {
 	      for(teiter = _M.begin(), teiterend = _M.end(); teiter != teiterend; teiter++)
@@ -1513,6 +1598,64 @@ scmImplicit::scmImplicit(map < string, string > &args)
       mutateTwists = stringToLong(maiter->second);
 
       _env = new rubikEnv(_maxSteps, numTestPoints, numValidPoints, initTwists, mutateTwists, useBinaryFitness, _seed);
+    }
+    else if(envType == "rpropEnv")
+    {
+      
+      if((maiter = args.find("lineDim")) == args.end())
+        die(__FILE__, __FUNCTION__, __LINE__, "cannot find arg lineDim");
+      
+      long lineDim = stringToLong(maiter->second);
+      
+      if((maiter = args.find("maxRpropGens")) == args.end())
+        die(__FILE__, __FUNCTION__, __LINE__, "cannot find arg maxRpropGens");
+      
+      long maxRpropGens = stringToLong(maiter->second);
+      
+      if((maiter = args.find("interval")) == args.end())
+        die(__FILE__, __FUNCTION__, __LINE__, "cannot find arg interval");
+      
+      double interval = stringToDouble(maiter->second);
+      
+      if((maiter = args.find("initialWeight")) == args.end())
+        die(__FILE__, __FUNCTION__, __LINE__, "cannot find arg initialWeight");
+      
+      double initialWeight = stringToDouble(maiter->second);
+      
+      if((maiter = args.find("initialUpdate")) == args.end())
+        die(__FILE__, __FUNCTION__, __LINE__, "cannot find arg initialUpdate");
+      
+      double initialUpdate = stringToDouble(maiter->second);
+      
+      if((maiter = args.find("maxUpdate")) == args.end())
+        die(__FILE__, __FUNCTION__, __LINE__, "cannot find arg maxUpdate");
+      
+      double maxUpdate = stringToDouble(maiter->second); 
+      
+      if((maiter = args.find("minUpdate")) == args.end())
+        die(__FILE__, __FUNCTION__, __LINE__, "cannot find arg minUpdate");
+      
+      double minUpdate = stringToDouble(maiter->second);
+      
+      if((maiter = args.find("increaseFactor")) == args.end())
+        die(__FILE__, __FUNCTION__, __LINE__, "cannot find arg increaseFactor");
+      
+      double increaseFactor = stringToDouble(maiter->second);
+      
+      if((maiter = args.find("decreaseFactor")) == args.end())
+        die(__FILE__, __FUNCTION__, __LINE__, "cannot find arg decreaseFactor");
+      
+      double decreaseFactor = stringToDouble(maiter->second);
+      
+      if((maiter = args.find("rpropAccuracy")) == args.end())
+        die(__FILE__, __FUNCTION__, __LINE__, "cannot find arg rpropAccuracy");
+      
+      double rpropAccuracy = stringToDouble(maiter->second);
+
+      _env = new rpropEnv(_maxSteps, lineDim, numTestPoints, numValidPoints, 
+                          maxRpropGens, interval, initialWeight, initialUpdate, 
+                          maxUpdate, minUpdate, increaseFactor, decreaseFactor, 
+                          rpropAccuracy, useBinaryFitness, _seed);
     }
   else
     {

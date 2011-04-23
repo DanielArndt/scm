@@ -154,6 +154,8 @@ protected:
   virtual double distance(vector < double > &, vector < double > &) = 0;
 
   virtual string myclass() { return "scm"; }
+
+  inline void rprop();
   
 public:
 
@@ -186,7 +188,10 @@ public:
   
   inline void evaluate(team *m, point *p, string prefix) 
   { double n; m->setOutcome(p, _env->evaluate(m, p, false, n, prefix, true)); m->setMargin(p, n); }
-
+  
+  implicitEnv* env() 
+  { return _env; }
+  
   void stats(long, long);
 
   void test(long);
